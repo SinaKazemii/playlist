@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Live Visual Sync</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  background: black;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+img {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+img.active {
+  opacity: 1;
+}
+
+#status {
+  position: absolute;
+  bottom: 5%;
+  width: 100%;
+  text-align: center;
+  color: white;
+  font-size: 2em;
+  opacity: 0.85;
+}
+</style>
+</head>
+
+<body>
+
+<div id="container">
+  <img id="img1">
+  <img id="img2">
+  <div id="status">Waiting for start</div>
+</div>
+
+<script>
+/* =====================================================
+   🔐 CONFIGURATION
+===================================================== */
+
+// CHANGE THIS PASSWORD
+const START_PASSWORD = "STARTSHOW";
+
+// PHOTO SEQUENCE (30 SLOTS)
+// 👉 PUT YOUR PHOTOS HERE
+const photos = [
+  { duration: 80, src: "1.jpg" }, // PUT YOUR PHOTO HERE
+  { duration: 5, src: "2.jpg" },
+  { duration: 60, src: "photo03.jpg" },
+  { duration: 60, src: "photo04.jpg" },
+  { duration: 60, src: "photo05.jpg" },
+  { duration: 60, src: "photo06.jpg" },
+  { duration: 60, src: "photo07.jpg" },
+  { duration: 60, src: "photo08.jpg" },
+  { duration: 60, src: "photo09.jpg" },
+  { duration: 60, src: "photo10.jpg" },
+
+  { duration: 60, src: "photo11.jpg" },
+  { duration: 60, src: "photo12.jpg" },
+  { duration: 60, src: "photo13.jpg" },
+  { duration: 60, src: "photo14.jpg" },
+  { duration: 60, src: "photo15.jpg" },
+  { duration: 60, src: "photo16.jpg" },
+  { duration: 60, src: "photo17.jpg" },
+  { duration: 60, src: "photo18.jpg" },
+  { duration: 60, src: "photo19.jpg" },
+  { duration: 60, src: "photo20.jpg" },
+
+  { duration: 60, src: "photo21.jpg" },
+  { duration: 60, src: "photo22.jpg" },
+  { duration: 60, src: "photo23.jpg" },
+  { duration: 60, src: "photo24.jpg" },
+  { duration: 60, src: "photo25.jpg" },
+  { duration: 60, src: "photo26.jpg" },
+  { duration: 60, src: "photo27.jpg" },
+  { duration: 60, src: "photo28.jpg" },
+  { duration: 60, src: "photo29.jpg" },
+  { duration: 60, src: "photo30.jpg" }
+];
+
+/* ===================================================== */
+
+const imgA = document.getElementById("img1");
+const imgB = document.getElementById("img2");
+const status = document.getElementById("status");
+
+let showingA = true;
+let started = false;
+let startTime = null;
+let currentIndex = -1;
+
+// SECRET START CONTROL
+document.addEventListener("keydown", e => {
+  if (e.shiftKey && e.key.toLowerCase() === "p") {
+    const pass = prompt("Enter start password:");
+    if (pass === START_PASSWORD) {
+      startShow();
+    }
+  }
+});
+
+function startShow() {
+  if (started) return;
+  started = true;
+  startTime = Date.now();
+  status.textContent = "";
+}
+
+function update() {
+  if (!started) return;
+
+  const now = Date.now();
+  let elapsed = Math.floor((now - startTime) / 1000);
+  let total = 0;
+  let index = -1;
+
+  for (let i = 0; i < photos.length; i++) {
+    total += photos[i].duration;
+    if (elapsed < total) {
+      index = i;
+      break;
+    }
+  }
+
+  if (index !== -1 && index !== currentIndex) {
+    const nextImg = showingA ? imgB : imgA;
+    const currentImg = showingA ? imgA : imgB;
+
+    nextImg.src = photos[index].src;
+    nextImg.classList.add("active");
+    currentImg.classList.remove("active");
+
+    showingA = !showingA;
+    currentIndex = index;
+  }
+}
+
+setInterval(update, 500);
+</script>
+
+</body>
+</html>
