@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Live Visual Sync</title>
+<title>Time-Based Live Visual (Iran Time)</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
@@ -34,39 +34,40 @@ img.active {
   opacity: 1;
 }
 
-#status {
+#countdown {
   position: absolute;
-  bottom: 5%;
-  width: 100%;
-  text-align: center;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   color: white;
-  font-size: 2em;
+  font-size: 3em;
+  text-align: center;
   opacity: 0.85;
 }
 </style>
 </head>
-
 <body>
 
 <div id="container">
   <img id="img1">
   <img id="img2">
-  <div id="status">Waiting for start</div>
+  <div id="countdown">Waiting for start...</div>
 </div>
 
 <script>
-/* =====================================================
-   🔐 CONFIGURATION
-===================================================== */
+/* ===================== CONFIGURATION ===================== */
 
-// CHANGE THIS PASSWORD
-const START_PASSWORD = "STARTSHOW";
+// Iran / Isfahan start time (local)
+const startHour = 20;   // 11 AM
+const startMinute = 37; // 50 minutes
 
-// PHOTO SEQUENCE (30 SLOTS)
-// 👉 PUT YOUR PHOTOS HERE
+// Iran UTC offset in minutes
+const iranOffsetMinutes = 3*60 + 30; // UTC+3:30
+
+// Photo durations (seconds) and filenames
 const photos = [
-  { duration: 80, src: "1.jpg" }, // PUT YOUR PHOTO HERE
-  { duration: 5, src: "2.jpg" },
+  { duration: 10, src: "1.jpg" },
+  { duration: 10, src: "2.jpg" },
   { duration: 60, src: "photo03.jpg" },
   { duration: 60, src: "photo04.jpg" },
   { duration: 60, src: "photo05.jpg" },
@@ -99,64 +100,84 @@ const photos = [
   { duration: 60, src: "photo30.jpg" }
 ];
 
-/* ===================================================== */
+/* ===================== SCRIPT ===================== */
 
 const imgA = document.getElementById("img1");
 const imgB = document.getElementById("img2");
-const status = document.getElementById("status");
+const countdown = document.getElementById("countdown");
 
 let showingA = true;
-let started = false;
-let startTime = null;
-let currentIndex = -1;
+let currentSrc = null;
 
-// SECRET START CONTROL
-document.addEventListener("keydown", e => {
-  if (e.shiftKey && e.key.toLowerCase() === "p") {
-    const pass = prompt("Enter start password:");
-    if (pass === START_PASSWORD) {
-      startShow();
-    }
+// Convert Iran local time to UTC timestamp
+function getStartTimeUTC() {
+  const now = new Date();
+  // UTC midnight for today
+  const utcMidnight = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  // Add Iran hours/minutes to UTC midnight
+  const startUTC = utcMidnight + (startHour * 60 + startMinute - iranOffsetMinutes) * 60000;
+  return startUTC;
+}
+
+// Generate absolute timestamps for each photo
+function generateScheduleUTC() {
+  const startUTC = getStartTimeUTC();
+  let schedule = [];
+  let acc = 0;
+  for (let i = 0; i < photos.length; i++) {
+    schedule.push({
+      time: startUTC + acc * 1000,
+      src: photos[i].src
+    });
+    acc += photos[i].duration;
   }
-});
+  return schedule;
+}
 
-function startShow() {
-  if (started) return;
-  started = true;
-  startTime = Date.now();
-  status.textContent = "";
+const scheduleUTC = generateScheduleUTC();
+
+function formatTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
 }
 
 function update() {
-  if (!started) return;
-
   const now = Date.now();
-  let elapsed = Math.floor((now - startTime) / 1000);
-  let total = 0;
-  let index = -1;
+  let activeItem = null;
 
-  for (let i = 0; i < photos.length; i++) {
-    total += photos[i].duration;
-    if (elapsed < total) {
-      index = i;
-      break;
-    }
+  for (let i = 0; i < scheduleUTC.length; i++) {
+    if (now >= scheduleUTC[i].time) activeItem = scheduleUTC[i];
   }
 
-  if (index !== -1 && index !== currentIndex) {
+  const firstTime = scheduleUTC[0].time;
+
+  if (now < firstTime) {
+    countdown.textContent = "Starting in " + formatTime(firstTime - now);
+    return;
+  } else if (!activeItem) {
+    countdown.textContent = "Show ended";
+    return;
+  } else {
+    countdown.textContent = "";
+  }
+
+  if (activeItem && activeItem.src !== currentSrc) {
     const nextImg = showingA ? imgB : imgA;
     const currentImg = showingA ? imgA : imgB;
 
-    nextImg.src = photos[index].src;
+    nextImg.src = activeItem.src;
     nextImg.classList.add("active");
     currentImg.classList.remove("active");
 
     showingA = !showingA;
-    currentIndex = index;
+    currentSrc = activeItem.src;
   }
 }
 
 setInterval(update, 500);
+update();
 </script>
 
 </body>
