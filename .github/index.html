@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Time-Based Live Visual (Iran Time)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+html, body {
+  margin: 0;
+  padding: 0;
+  background: black;
+  height: 100%;
+  overflow: hidden;
+  font-family: Arial, sans-serif;
+}
+
+#container {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+}
+
+img {
+  position: absolute;
+  width: 100vw;
+  height: 100vh;
+  object-fit: contain;
+  opacity: 0;
+  transition: opacity 1.5s ease-in-out;
+}
+
+img.active {
+  opacity: 1;
+}
+
+#countdown {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-size: 3em;
+  text-align: center;
+  opacity: 0.85;
+}
+</style>
+</head>
+<body>
+
+<div id="container">
+  <img id="img1">
+  <img id="img2">
+  <div id="countdown">Waiting for start...</div>
+</div>
+
+<script>
+/* ===================== CONFIGURATION ===================== */
+
+// Iran / Isfahan start time (local)
+const startHour = 01;   // 11 AM
+const startMinute = 10; // 50 minutes
+
+// Iran UTC offset in minutes
+const iranOffsetMinutes = 3*60 + 30; // UTC+3:30
+
+// Photo durations (seconds) and filenames
+const photos = [
+  { duration: 2, src: "1.jpg" },
+  { duration: 2, src: "2.jpg" },
+  { duration: 2, src: "3.jpg" },
+  { duration: 2, src: "4.jpg" },
+  { duration: 2, src: "5.jpg" },
+  { duration: 2, src: "6.jpg" },
+  { duration: 2, src: "7.jpg" },
+  { duration: 2, src: "8.jpg" },
+  { duration: 2, src: "9.jpg" },
+  { duration: 2, src: "10.jpg" },
+
+  { duration: 2, src: "11.jpg" },
+  { duration: 2, src: "12.jpg" },
+  { duration: 2, src: "13.jpg" },
+  { duration: 2, src: "14.jpg" },
+  { duration: 2, src: "15.jpg" },
+  { duration: 2, src: "16.jpg" },
+  { duration: 2, src: "17.jpg" },
+  { duration: 2, src: "18.jpg" },
+  { duration: 2, src: "19.jpg" },
+  { duration: 2, src: "20.jpg" },
+
+  { duration: 2, src: "21.jpg" },
+  { duration: 2, src: "22.jpg" },
+  { duration: 2, src: "23.jpg" },
+  { duration: 2, src: "24.jpg" },
+  { duration: 2, src: "25.jpg" },
+  { duration: 2, src: "26.jpg" },
+  { duration: 2, src: "27.jpg" },
+  { duration: 2, src: "28.jpg" },
+  { duration: 2, src: "29.jpg" },
+  { duration: 2, src: "30.jpg" }
+];
+
+/* ===================== SCRIPT ===================== */
+
+const imgA = document.getElementById("img1");
+const imgB = document.getElementById("img2");
+const countdown = document.getElementById("countdown");
+
+let showingA = true;
+let currentSrc = null;
+
+// Convert Iran local time to UTC timestamp
+function getStartTimeUTC() {
+  const now = new Date();
+  // UTC midnight for today
+  const utcMidnight = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+  // Add Iran hours/minutes to UTC midnight
+  const startUTC = utcMidnight + (startHour * 60 + startMinute - iranOffsetMinutes) * 60000;
+  return startUTC;
+}
+
+// Generate absolute timestamps for each photo
+function generateScheduleUTC() {
+  const startUTC = getStartTimeUTC();
+  let schedule = [];
+  let acc = 0;
+  for (let i = 0; i < photos.length; i++) {
+    schedule.push({
+      time: startUTC + acc * 1000,
+      src: photos[i].src
+    });
+    acc += photos[i].duration;
+  }
+  return schedule;
+}
+
+const scheduleUTC = generateScheduleUTC();
+
+function formatTime(ms) {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${m}:${r.toString().padStart(2, "0")}`;
+}
+
+function update() {
+  const now = Date.now();
+  let activeItem = null;
+
+  for (let i = 0; i < scheduleUTC.length; i++) {
+    if (now >= scheduleUTC[i].time) activeItem = scheduleUTC[i];
+  }
+
+  const firstTime = scheduleUTC[0].time;
+
+  if (now < firstTime) {
+    countdown.textContent = "Starting in " + formatTime(firstTime - now);
+    return;
+  } else if (!activeItem) {
+    countdown.textContent = "Show ended";
+    return;
+  } else {
+    countdown.textContent = "";
+  }
+
+  if (activeItem && activeItem.src !== currentSrc) {
+    const nextImg = showingA ? imgB : imgA;
+    const currentImg = showingA ? imgA : imgB;
+
+    nextImg.src = activeItem.src;
+    nextImg.classList.add("active");
+    currentImg.classList.remove("active");
+
+    showingA = !showingA;
+    currentSrc = activeItem.src;
+  }
+}
+
+setInterval(update, 500);
+update();
+</script>
+
+</body>
+</html>
